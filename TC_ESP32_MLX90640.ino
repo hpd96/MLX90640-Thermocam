@@ -14,8 +14,15 @@
  */
 
 
+/*
+ *  Changes:
+ *  no GCC warnings
+ *
+ */
+
+
+ 
 #include <TFT_eSPI.h>
-#include <SD.h>
 #include <SPI.h>
 #include <Wire.h>
 
@@ -32,10 +39,12 @@
 #define C_DKGREY Display.color565(80,80,80)
 #define C_GREY Display.color565(127,127,127)
 
-
+#ifndef min
 #define min(a,b) ((a)<(b)?(a):(b))
+#endif
+#ifndef max
 #define max(a,b) ((a)>(b)?(a):(b))
-
+#endif
 
 const byte MLX90640_address = 0x33; //Default 7-bit unshifted address of the MLX90640
 #define TA_SHIFT 8 //Default shift for MLX90640 in open air
@@ -49,12 +58,10 @@ TFT_eSPI Display = TFT_eSPI();
 boolean measure = true;
 float centerTemp;
 unsigned long tempTime = millis();
-unsigned long tempTime2 = 0;
-unsigned long batteryTime = 1;
 
 // start with some initial colors
-float minTemp = 20.0;
-float maxTemp = 40.0;
+float minTemp = 0.0;
+float maxTemp = 10.0;
 
 
 // variables for interpolated colors
@@ -72,12 +79,12 @@ static float pixels[768];
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Hello.");
+  Serial.println("Hello. nova netzbasteln ThermoCam");
 
   // Connect thermal sensor.
   Wire.begin();
   Wire.setClock(400000); // Increase I2C clock speed to 400kHz
-  Wire.beginTransmission((uint8_t)MLX90640_address);
+  Wire.beginTransmission((uint8_t) MLX90640_address);
   if (Wire.endTransmission() != 0) {
     Serial.println("MLX90640 not detected at default I2C address. Please check wiring.");
   }
@@ -138,7 +145,7 @@ void readPixels() {
     float vdd = MLX90640_GetVdd(mlx90640Frame, &mlx90640);
     float Ta = MLX90640_GetTa(mlx90640Frame, &mlx90640);
 
-    float tr = Ta - TA_SHIFT; //Reflected temperature based on the sensor ambient temperature  
+    float tr = Ta - TA_SHIFT; // Reflected temperature based on the sensor ambient temperature  
 
     MLX90640_CalculateTo(mlx90640Frame, &mlx90640, emissivity, tr, pixels);
   }
@@ -225,7 +232,7 @@ void drawLegend() {
   float inc = (maxTemp - minTemp) / 224.0;
   j = 0;
   for (ii = minTemp; ii < maxTemp; ii += inc) {
-    Display.drawFastVLine(8+ + j++, 292, 20, getColor(ii));
+    Display.drawFastVLine(8 + j++, 292, 20, getColor(ii));
   }
 
   Display.setTextFont(2);
@@ -238,7 +245,6 @@ void drawLegend() {
   Display.setTextColor(TFT_WHITE, TFT_BLACK);
   Display.print(String(maxTemp).substring(0, 5));
 
-  Display.setTextFont(NULL);
 }
 
 
