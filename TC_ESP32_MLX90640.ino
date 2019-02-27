@@ -17,6 +17,7 @@
 /*
  *  Changes:
  *  no GCC warnings
+ *  only one float digit/Nachkommastelle
  *
  */
 
@@ -235,16 +236,17 @@ void drawLegend() {
     Display.drawFastVLine(8 + j++, 292, 20, getColor(ii));
   }
 
-  Display.setTextFont(2);
+  Display.setTextFont(2);  // Small 16 pixel high font
   Display.setTextSize(1);
   Display.setCursor(8, 272);
   Display.setTextColor(TFT_WHITE, TFT_BLACK);
-  Display.print(String(minTemp).substring(0, 5));
+  Display.print(String(minTemp,1));
 
-  Display.setCursor(192, 272);
+  Display.setCursor(202, 272);
   Display.setTextColor(TFT_WHITE, TFT_BLACK);
-  Display.print(String(maxTemp).substring(0, 5));
-
+  Display.print(String(maxTemp,1));
+  
+  // Serial.println( "min " + String(minTemp,1) + " max " + String(maxTemp,1));
 }
 
 
@@ -256,9 +258,12 @@ void drawMeasurement() {
 
   // Measure and print center temperature
   centerTemp = (pixels[383 - 16] + pixels[383 - 15] + pixels[384 + 15] + pixels[384 + 16]) / 4;
-  Display.setCursor(86, 214);
+  Display.setCursor(60, 218);
   Display.setTextColor(TFT_WHITE, TFT_BLACK);
-  Display.setTextFont(2);
-  Display.setTextSize(2);
-  Display.print(String(centerTemp).substring(0, 5) + " °C");
+  Display.setTextFont(1); // glcd to display degree char
+  Display.setTextSize(4);
+  Display.print(String(centerTemp,1));
+  #define GLCD_CHAR_DEGREE 247
+  Display.print(char(GLCD_CHAR_DEGREE));
+  Display.print("C");
 }
