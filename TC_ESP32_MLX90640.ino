@@ -18,6 +18,8 @@
  *  Changes:
  *  no GCC warnings
  *  only one float digit/Nachkommastelle
+ *  show degree ° character
+ *  avoid constants like 768, 32 x 24
  *
  */
 
@@ -74,7 +76,9 @@ int x, y, i, j;
 
 
 // array for the 32 x 24 measured pixels
-static float pixels[768];
+#define MLX90640_pixel_x 32
+#define MLX90640_pixel_y 24
+static float pixels[ MLX90640_pixel_x * MLX90640_pixel_y ];
 
 
 
@@ -155,9 +159,9 @@ void readPixels() {
 
 // Show 32x24 sensor data on the top part of the 240x320 screen.
 void drawPicture() {
-  for (y=0; y<24; y++) {
-    for (x=0; x<32; x++) {
-      Display.fillRect(8 + x*7, 8 + y*7, 7, 7, getColor(pixels[(31-x) + (y*32)]));
+  for (y=0; y < MLX90640_pixel_y; y++) {
+    for (x=0; x < MLX90640_pixel_x; x++) {
+      Display.fillRect(8 + x*7, 8 + y*7, 7, 7, getColor(pixels[(MLX90640_pixel_x -1 - x) + (y * MLX90640_pixel_x)]));
     }
   }
 }
@@ -209,7 +213,7 @@ void setTempScale() {
   minTemp = 255;
   maxTemp = 0;
 
-  for (i = 0; i < 768; i++) {
+  for (i = 0; i < sizeof(pixels)/sizeof(pixels[0]) ; i++) {
     minTemp = min(minTemp, pixels[i]);
     maxTemp = max(maxTemp, pixels[i]);
   }
@@ -257,7 +261,13 @@ void drawMeasurement() {
   Display.drawCircle(120, 8+84, 3, TFT_WHITE);
 
   // Measure and print center temperature
-  centerTemp = (pixels[383 - 16] + pixels[383 - 15] + pixels[384 + 15] + pixels[384 + 16]) / 4;
+  int pixel_row = MLX90640_pixel_y / 2;
+  int pixel_col = MLX90640_pixel_x / 2;
+
+  centerTemp = ( pixels[MLX90640_pixel_x * (pixel_row-1) + pixel_col -1] + pixels[MLX90640_pixel_x * (pixel_row-1) + pixel_col]
+               + pixels[MLX90640_pixel_x *  pixel_row    + pixel_col -1] + pixels[MLX90640_pixel_x *  pixel_row    + pixel_col] ) / 4;
+  // Serial.println(" center " + String(centerTemp,2));
+
   Display.setCursor(60, 218);
   Display.setTextColor(TFT_WHITE, TFT_BLACK);
   Display.setTextFont(1); // glcd to display degree char
