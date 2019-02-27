@@ -20,6 +20,10 @@
  *  only one float digit/Nachkommastelle
  *  show degree ° character
  *  avoid constants like 768, 32 x 24
+ *  plausibility check [PLAUSI_MIN,PLAUSI_MAX] to avoid strange printing on TFT
+ *
+ *  TODO:
+ *  check why sometimes not plausible values
  *
  */
 
@@ -53,14 +57,14 @@ const byte MLX90640_address = 0x33; //Default 7-bit unshifted address of the MLX
 #define TA_SHIFT 8 //Default shift for MLX90640 in open air
 paramsMLX90640 mlx90640;
 
+#define PLAUSI_MAX_TEMP (+300.0)
+#define PLAUSI_MIN_TEMP ( -40.0)
 
 TFT_eSPI Display = TFT_eSPI();
 
 
 // Added for measure Temp
 boolean measure = true;
-float centerTemp;
-unsigned long tempTime = millis();
 
 // start with some initial colors
 float minTemp = 0.0;
@@ -115,21 +119,15 @@ void setup() {
   Display.begin();
   //Display.setRotation(3);
   Display.fillScreen(C_BLACK);
-
-  // get the cutoff points for the color interpolation routines
-  // note this function called when the temp scale is changed
-  setAbcd();
-  drawLegend();
 }
 
 
 void loop() {
-  tempTime = millis();
-
   readPixels();
-  setTempScale();
-  drawPicture();
-  drawMeasurement();
+  if (setTempScale() == 0) {
+    drawPicture();
+    drawMeasurement();
+  }
 }
 
 
@@ -209,17 +207,26 @@ uint16_t getColor(float val) {
 }
 
 
-void setTempScale() {
-  minTemp = 255;
-  maxTemp = 0;
+int setTempScale() {
+  minTemp = PLAUSI_MAX_TEMP;
+  maxTemp = PLAUSI_MIN_TEMP;
 
   for (i = 0; i < sizeof(pixels)/sizeof(pixels[0]) ; i++) {
     minTemp = min(minTemp, pixels[i]);
     maxTemp = max(maxTemp, pixels[i]);
   }
 
+/* avoid strange reading values:
+ *  e.g. : 
+ *  min 255.0 max 622.7
+ *  min -173.5 max -131.6
+*/
+  if ( minTemp < PLAUSI_MIN_TEMP || maxTemp > PLAUSI_MAX_TEMP) { return 1; }
+  // get the cutoff points for the color interpolation routines
+  // note this function called when the temp scale is changed
   setAbcd();
   drawLegend();
+  return 0;
 }
 
 
@@ -256,6 +263,7 @@ void drawLegend() {
 
 // Draw a circle + measured value.
 void drawMeasurement() {
+  float centerTemp;
 
   // Mark center measurement
   Display.drawCircle(120, 8+84, 3, TFT_WHITE);
@@ -270,7 +278,7 @@ void drawMeasurement() {
 
   Display.setCursor(60, 218);
   Display.setTextColor(TFT_WHITE, TFT_BLACK);
-  Display.setTextFont(1); // glcd to display degree char
+  Display.setTextFont(1); // font GLCD to display degree char
   Display.setTextSize(4);
   Display.print(String(centerTemp,1));
   #define GLCD_CHAR_DEGREE 247
